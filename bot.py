@@ -1,5 +1,6 @@
 import telebot
 import configparser
+import Dao.category_dao
 
 from telebot import types
 
@@ -8,16 +9,7 @@ config.read("settings.ini")
 
 bot = telebot.TeleBot(config["TELEGRAM"]["TG_TOKEN"])
 
-# def toString(collection):
-#     output = ''
-#
-#     for i in range(len(collection)):
-#         output = output + str(i+1) + '. ' + collection[i] + '\n'
-#
-#     return output
-
-
-categories = ['Бакалея', 'Десерты', 'Напитки', 'Чай']
+category_dao = Dao.category_dao.CategoryDAO()
 
 
 @bot.message_handler(commands=['start'])
@@ -29,9 +21,11 @@ def start(message):
 @bot.message_handler(commands=['category'])
 def getCategory(message):
     markup = types.InlineKeyboardMarkup()
+    categories = category_dao.find_all()
 
-    for i in categories:
-        markup.add(types.InlineKeyboardButton(text=i, callback_data=i))
+    for category in categories:
+        markup.add(types.InlineKeyboardButton(text=category.get_category_name(),
+                                              callback_data=category.get_category_name()))
 
     bot.send_message(chat_id=message.chat.id, text="Категории товаров:", reply_markup=markup)
 
