@@ -1,25 +1,11 @@
-import psycopg2
-import configparser
+from Dao.entity_dao import EntityDAO
 
 
-class CategoryDAO:
+class CategoryDAO(EntityDAO):
 
-    def __init__(self):
-        config = configparser.ConfigParser()
-        config.read("settings.ini")
-        try:
-            self.connection = psycopg2.connect(database=config["CONNECTION"]["database"],
-                                               user=config["CONNECTION"]["user"],
-                                               password=config["CONNECTION"]["password"],
-                                               host=config["CONNECTION"]["host"],
-                                               port=config["CONNECTION"]["port"]
-                                               )
-            self.connection.autocommit = True
-            self.cursor = self.connection.cursor()
-        except:
-            print("Cannot connect to database")
-
+    # TODO this is read (crud)
     def find_all(self):
+        self.init_connection()
 
         cursor = self.cursor
 
@@ -35,6 +21,7 @@ class CategoryDAO:
             categories.append(category)
 
         print("Operation done successfully")
+        self.connection.close()
         return categories
 
 
