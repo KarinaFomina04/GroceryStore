@@ -48,7 +48,7 @@ def answer(call):
     else:
         markup = types.InlineKeyboardMarkup()
         good = good_dao.find_by_id(callback[0])
-        markup.add(types.InlineKeyboardButton(text='Добавить в карзину',
+        markup.add(types.InlineKeyboardButton(text='Добавить в корзину',
                                               callback_data='test'))
 
         bot.send_message(chat_id=call.message.chat.id,
