@@ -4,8 +4,7 @@ from Dao.entity_dao import EntityDAO
 class GoodDAO(EntityDAO):
 
     # TODO this is read (crud)
-    def find_by_id(self, category_id):
-
+    def find_by_category_id(self, category_id):
         self.init_connection()
 
         cursor = self.cursor
@@ -29,6 +28,27 @@ class GoodDAO(EntityDAO):
         print("Operation done successfully")
         self.connection.close()
         return goods
+
+    def find_by_id(self, product_id):
+        self.init_connection()
+
+        cursor = self.cursor
+
+        cursor.execute("SELECT * FROM goods WHERE product_id = " + product_id)
+
+        row = cursor.fetchone()
+
+        good = Good()
+        good.set_product_id(row[0])
+        good.set_product_name(row[1])
+        good.set_category(row[2])
+        good.set_weight(row[3])
+        good.set_url(row[4])
+        good.set_price(row[5])
+
+        print("Operation done successfully")
+        self.connection.close()
+        return good
 
 
 class Good:

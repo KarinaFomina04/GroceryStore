@@ -27,20 +27,38 @@ def getCategory(message):
 
     for category in categories:
         markup.add(types.InlineKeyboardButton(text=category.get_category_name(),
-                                              callback_data=category.get_category_id()))
+                                              callback_data=str(category.get_category_id()) + ' category'))
 
     bot.send_message(chat_id=message.chat.id, text="Категории товаров:", reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def answer(call):
-    markup = types.InlineKeyboardMarkup()
-    goods = good_dao.find_by_id(call.data)
+    callback = call.data.split(' ')
 
-    for good in goods:
-        markup.add(types.InlineKeyboardButton(text=good.get_product_name(),
-                                              callback_data=good.get_product_id()))
-    bot.send_message(chat_id=call.message.chat.id, text='Представлены товары данной категории: ', reply_markup=markup)
+    if callback[1] == 'category':
+        markup = types.InlineKeyboardMarkup()
+        goods = good_dao.find_by_category_id(callback[0])
+
+        for good in goods:
+            markup.add(types.InlineKeyboardButton(text=good.get_product_name(),
+                                                  callback_data=str(good.get_product_id()) + ' good'))
+        bot.send_message(chat_id=call.message.chat.id, text='Представлены товары данной категории: ',
+                         reply_markup=markup)
+    else:
+        markup = types.InlineKeyboardMarkup()
+        good = good_dao.find_by_id(callback[0])
+        markup.add(types.InlineKeyboardButton(text='Добавить в карзину',
+                                              callback_data='test'))
+
+        bot.send_message(chat_id=call.message.chat.id,
+                         text='<b>{0}</b>\n Вес: {1} мл.\n Цена: {2} руб'.format(
+                             good.get_product_name(),
+                             str(good.get_weight()),
+                             str(good.get_price())),
+                         parse_mode='html',
+                         reply_markup=markup)
+        bot.send_photo(call.message.chat.id, good.get_url())
 
 
 bot.polling(none_stop=True)
