@@ -1,5 +1,6 @@
 from Dao.entity_dao import EntityDAO
-
+from Utils.localization import Localization
+from Utils.common_utils import CommonUtils
 
 class GoodDAO(EntityDAO):
 
@@ -52,6 +53,13 @@ class GoodDAO(EntityDAO):
 
 
 class Good:
+
+    def get_html_good(self):
+        return Localization.get_message('html_good').format(
+            self.get_product_name(),
+            str(self.get_weight()),
+            str(self.get_price()),
+            CommonUtils.get_measure(self.get_category()))
 
     def get_product_id(self):
         return self.__product_id

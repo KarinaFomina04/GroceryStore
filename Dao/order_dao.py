@@ -1,4 +1,6 @@
 from Dao.entity_dao import EntityDAO
+from Utils.common_utils import CommonUtils
+from Utils.localization import Localization
 
 
 class OrderDAO(EntityDAO):
@@ -50,6 +52,15 @@ class OrderDAO(EntityDAO):
 
 
 class Order:
+
+    def get_html_order(self):
+        return Localization.get_message('html_order').format(
+            self.get_product_name(),
+            str(self.get_weight()),
+            str(self.get_count()),
+            str(self.get_price() * self.get_count()),
+            CommonUtils.get_measure(self.get_category()))
+
     def get_order_id(self):
         return self.__order_id
 

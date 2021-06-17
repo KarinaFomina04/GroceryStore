@@ -17,30 +17,6 @@ good_dao = GoodDAO()
 order_dao = OrderDAO()
 
 
-def get_measure(category):
-    if category == 3:
-        return Localization.get_message('measure_ml')
-    else:
-        return Localization.get_message('measure_gr')
-
-
-def get_html_good(good):
-    return Localization.get_message('html_good').format(
-        good.get_product_name(),
-        str(good.get_weight()),
-        str(good.get_price()),
-        get_measure(good.get_category()))
-
-
-def get_html_order(order):
-    return Localization.get_message('html_order').format(
-        order.get_product_name(),
-        str(order.get_weight()),
-        str(order.get_count()),
-        str(order.get_price() * order.get_count()),
-        get_measure(order.get_category()))
-
-
 @bot.message_handler(commands=['start'])
 def start(message):
     Localization.init_locale(message.from_user.language_code)
@@ -55,7 +31,7 @@ def get_cart(message):
     if (orders is not None) and (len(orders) != 0):
         total_price = 0
         for order in orders:
-            text_message = text_message + get_html_order(order)
+            text_message = text_message + order.get_html_order()
             total_price = total_price + order.get_price() * order.get_count()
         text_message = text_message + Localization.get_message('total_price').format(str(total_price))
         bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
@@ -97,7 +73,7 @@ def answer(call):
                                               callback_data=str(good.get_product_id()) + ' order'))
 
         bot.send_message(chat_id=call.message.chat.id,
-                         text=get_html_good(good),
+                         text=good.get_html_good(),
                          parse_mode='html',
                          reply_markup=markup)
         bot.send_photo(call.message.chat.id, good.get_url())
