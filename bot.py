@@ -52,8 +52,11 @@ def get_cart(message):
     orders = order_dao.find_orders(message.from_user.id)
     text_message = "<b>Ваши товары:</b>\n\n"
     if (orders is not None) and (len(orders) != 0):
+        total_price = 0
         for order in orders:
             text_message = text_message + get_html_order(order)
+            total_price = total_price + order.get_price() * order.get_count()
+        text_message = text_message + "Итоговая стоимость: " + str(total_price) + " руб."
         bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
     else:
         bot.send_message(chat_id=message.chat.id, text="Ваша корзина пуста!")
