@@ -5,6 +5,7 @@ from Dao.good_dao import GoodDAO
 from Dao.category_dao import CategoryDAO
 from Dao.order_dao import OrderDAO
 from telebot import types
+from Utils.localization import Localization
 
 config = configparser.ConfigParser()
 config.read("settings.ini")
@@ -18,13 +19,13 @@ order_dao = OrderDAO()
 
 def get_measure(category):
     if category == 3:
-        return " мл."
+        return Localization.get_message('measure_ml')
     else:
-        return " г."
+        return Localization.get_message('measure_gr')
 
 
 def get_html_good(good):
-    return '<b>{0}</b>\n Вес: {1}{3}\n Цена: {2} руб.\n'.format(
+    return Localization.get_message('html_good').format(
         good.get_product_name(),
         str(good.get_weight()),
         str(good.get_price()),
@@ -32,7 +33,7 @@ def get_html_good(good):
 
 
 def get_html_order(order):
-    return '<b>{0}</b>\n Вес: {1}{4}\n Количество единиц: {2} \n Цена: {3} руб.\n\n'.format(
+    return Localization.get_message('html_order').format(
         order.get_product_name(),
         str(order.get_weight()),
         str(order.get_count()),
@@ -42,28 +43,29 @@ def get_html_order(order):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.send_message(message.chat.id, "Добро пожаловать в {0.first_name}!\n Нажмите на /category для вывода категорий "
-                                      "товаров.\n Чтобы увидеть выбранные Вами товары, нажмите на /cart."
-                     .format(bot.get_me()))
+    Localization.init_locale(message.from_user.language_code)
+    bot.send_message(message.chat.id, Localization.get_message('start_message').format(bot.get_me()))
 
 
 @bot.message_handler(commands=['cart'])
 def get_cart(message):
+    Localization.init_locale(message.from_user.language_code)
     orders = order_dao.find_orders(message.from_user.id)
-    text_message = "<b>Ваши товары:</b>\n\n"
+    text_message = Localization.get_message('your_orders')
     if (orders is not None) and (len(orders) != 0):
         total_price = 0
         for order in orders:
             text_message = text_message + get_html_order(order)
             total_price = total_price + order.get_price() * order.get_count()
-        text_message = text_message + "Итоговая стоимость: " + str(total_price) + " руб."
+        text_message = text_message + Localization.get_message('total_price').format(str(total_price))
         bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
     else:
-        bot.send_message(chat_id=message.chat.id, text="Ваша корзина пуста!")
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('empty_cart'))
 
 
 @bot.message_handler(commands=['category'])
 def getCategory(message):
+    Localization.init_locale(message.from_user.language_code)
     markup = types.InlineKeyboardMarkup()
     categories = category_dao.find_all()
 
@@ -71,11 +73,12 @@ def getCategory(message):
         markup.add(types.InlineKeyboardButton(text=category.get_category_name(),
                                               callback_data=str(category.get_category_id()) + ' category'))
 
-    bot.send_message(chat_id=message.chat.id, text="Категории товаров:", reply_markup=markup)
+    bot.send_message(chat_id=message.chat.id, text=Localization.get_message('good_categories'), reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def answer(call):
+    Localization.init_locale(call.from_user.language_code)
     callback = call.data.split(' ')
 
     if callback[1] == 'category':
@@ -85,12 +88,12 @@ def answer(call):
         for good in goods:
             markup.add(types.InlineKeyboardButton(text=good.get_product_name(),
                                                   callback_data=str(good.get_product_id()) + ' good'))
-        bot.send_message(chat_id=call.message.chat.id, text='Представлены товары данной категории: ',
+        bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('show_goods'),
                          reply_markup=markup)
     elif callback[1] == 'good':
         markup = types.InlineKeyboardMarkup()
         good = good_dao.find_by_id(callback[0])
-        markup.add(types.InlineKeyboardButton(text='Добавить в корзину',
+        markup.add(types.InlineKeyboardButton(text=Localization.get_message('add_to_cart'),
                                               callback_data=str(good.get_product_id()) + ' order'))
 
         bot.send_message(chat_id=call.message.chat.id,
@@ -100,7 +103,7 @@ def answer(call):
         bot.send_photo(call.message.chat.id, good.get_url())
     else:
         order_dao.add_to_cart(call.from_user.id, callback[0])
-        bot.send_message(chat_id=call.message.chat.id, text='Товар добавлен в корзину!')
+        bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_added'))
 
 
 bot.polling(none_stop=True)
