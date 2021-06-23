@@ -50,6 +50,14 @@ class OrderDAO(EntityDAO):
         self.connection.close()
         return orders
 
+    def clear_cart(self, user_id):
+        self.init_connection()
+
+        cursor = self.cursor
+        cursor.execute("DELETE FROM public.order WHERE user_id =" + str(user_id))
+        print("Operation done successfully")
+        self.connection.close()
+
 
 class Order:
 

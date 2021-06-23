@@ -82,4 +82,10 @@ def answer(call):
         bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_added'))
 
 
+@bot.message_handler(commands=['buy'])
+def buy(message):
+    Localization.init_locale(message.from_user.language_code)
+    order_dao.clear_cart(message.from_user.id)
+
+
 bot.polling(none_stop=True)
