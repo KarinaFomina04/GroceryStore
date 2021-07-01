@@ -1,6 +1,7 @@
 import telebot
 import configparser
 
+from enum import Enum
 from Dao.good_dao import GoodDAO
 from Dao.category_dao import CategoryDAO
 from Dao.order_dao import OrderDAO
@@ -15,6 +16,7 @@ bot = telebot.TeleBot(config["TELEGRAM"]["TG_TOKEN"])
 category_dao = CategoryDAO()
 good_dao = GoodDAO()
 order_dao = OrderDAO()
+is_confirm = False
 
 
 @bot.message_handler(commands=['start'])
@@ -33,7 +35,8 @@ def get_cart(message):
         for order in orders:
             text_message = text_message + order.get_html_order()
             total_price = total_price + order.get_price() * order.get_count()
-        text_message = text_message + Localization.get_message('total_price').format(str(total_price))
+        text_message = text_message + Localization.get_message('total_price').format(
+            str(total_price)) + Localization.get_message('properties_added')
         bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
     else:
         bot.send_message(chat_id=message.chat.id, text=Localization.get_message('empty_cart'))
@@ -82,10 +85,21 @@ def answer(call):
         bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_added'))
 
 
-@bot.message_handler(commands=['buy'])
-def buy(message):
+@bot.message_handler(commands=['confirm'])
+def confirm(message):
     Localization.init_locale(message.from_user.language_code)
     order_dao.clear_cart(message.from_user.id)
+    global is_confirm
+    is_confirm = True
+    bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').format('Ф.И.О'))
+
+
+@bot.message_handler(content_types=['text'])
+def get_text_messages(message):
+    global is_confirm
+    if is_confirm:
+        bot.send_message(chat_id=message.chat.id, text='test')
+        is_confirm = False
 
 
 bot.polling(none_stop=True)
