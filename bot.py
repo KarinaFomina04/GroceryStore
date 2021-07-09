@@ -1,12 +1,13 @@
 import telebot
 import configparser
 
-from enum import Enum
+from Enum.property_enum import ConfirmInputMode
 from Dao.good_dao import GoodDAO
 from Dao.category_dao import CategoryDAO
 from Dao.order_dao import OrderDAO
 from telebot import types
 from Utils.localization import Localization
+from Dao.property_dao import PropertyDao
 
 config = configparser.ConfigParser()
 config.read("settings.ini")
@@ -16,7 +17,8 @@ bot = telebot.TeleBot(config["TELEGRAM"]["TG_TOKEN"])
 category_dao = CategoryDAO()
 good_dao = GoodDAO()
 order_dao = OrderDAO()
-is_confirm = False
+property_dao = PropertyDao()
+confirm_mode_enabled = False
 
 
 @bot.message_handler(commands=['start'])
@@ -89,17 +91,33 @@ def answer(call):
 def confirm(message):
     Localization.init_locale(message.from_user.language_code)
     order_dao.clear_cart(message.from_user.id)
-    global is_confirm
-    is_confirm = True
-    bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').format('Ф.И.О'))
+    global confirm_mode_enabled
+    confirm_mode_enabled = ConfirmInputMode.NAME
+    bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
+                     format(Localization.get_message('name')))
 
 
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
-    global is_confirm
-    if is_confirm:
-        bot.send_message(chat_id=message.chat.id, text='test')
-        is_confirm = False
-
+    global confirm_mode_enabled
+    if confirm_mode_enabled == ConfirmInputMode.NAME:
+        property_dao.add_property(message.text, ConfirmInputMode.NAME.value, message.from_user.id)
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
+                            format(Localization.get_message('telephone')))
+        confirm_mode_enabled = ConfirmInputMode.TELEPHONE_NUMBER
+    elif confirm_mode_enabled == ConfirmInputMode.TELEPHONE_NUMBER:
+        property_dao.add_property(message.text, ConfirmInputMode.TELEPHONE_NUMBER.value, message.from_user.id)
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
+                            format(Localization.get_message('e_mail')))
+        confirm_mode_enabled = ConfirmInputMode.E_MAIL
+    elif confirm_mode_enabled == ConfirmInputMode.E_MAIL:
+        property_dao.add_property(message.text, ConfirmInputMode.E_MAIL.value, message.from_user.id)
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
+                            format(Localization.get_message('address')))
+        confirm_mode_enabled = ConfirmInputMode.ADDRESS
+    elif confirm_mode_enabled == ConfirmInputMode.ADDRESS:
+        property_dao.add_property(message.text, ConfirmInputMode.ADDRESS.value, message.from_user.id)
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
+                         format(Localization.get_message('address')))
 
 bot.polling(none_stop=True)
