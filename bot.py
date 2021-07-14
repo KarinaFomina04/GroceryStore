@@ -19,6 +19,7 @@ good_dao = GoodDAO()
 order_dao = OrderDAO()
 property_dao = PropertyDao()
 confirm_mode_enabled = False
+property_dict = {}
 
 
 @bot.message_handler(commands=['start'])
@@ -82,6 +83,13 @@ def answer(call):
                          parse_mode='html',
                          reply_markup=markup)
         bot.send_photo(call.message.chat.id, good.get_url())
+    elif callback[1] == 'confirm':
+        if callback[0] == 'yes':
+            property_dao.add_properties(property_dict, call.from_user.id)
+            bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_in_confirm'))
+        else:
+            bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('repeat_confirm'))
+        property_dict.clear()
     else:
         order_dao.add_to_cart(call.from_user.id, callback[0])
         bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_added'))
@@ -100,24 +108,33 @@ def confirm(message):
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     global confirm_mode_enabled
+    global property_dict
     if confirm_mode_enabled == ConfirmInputMode.NAME:
-        property_dao.add_property(message.text, ConfirmInputMode.NAME.value, message.from_user.id)
+        property_dict[ConfirmInputMode.NAME.value] = message.text
         bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
-                            format(Localization.get_message('telephone')))
+                         format(Localization.get_message('telephone')))
         confirm_mode_enabled = ConfirmInputMode.TELEPHONE_NUMBER
     elif confirm_mode_enabled == ConfirmInputMode.TELEPHONE_NUMBER:
-        property_dao.add_property(message.text, ConfirmInputMode.TELEPHONE_NUMBER.value, message.from_user.id)
+        property_dict[ConfirmInputMode.TELEPHONE_NUMBER.value] = message.text
         bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
-                            format(Localization.get_message('e_mail')))
+                         format(Localization.get_message('e_mail')))
         confirm_mode_enabled = ConfirmInputMode.E_MAIL
     elif confirm_mode_enabled == ConfirmInputMode.E_MAIL:
-        property_dao.add_property(message.text, ConfirmInputMode.E_MAIL.value, message.from_user.id)
-        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
-                            format(Localization.get_message('address')))
-        confirm_mode_enabled = ConfirmInputMode.ADDRESS
-    elif confirm_mode_enabled == ConfirmInputMode.ADDRESS:
-        property_dao.add_property(message.text, ConfirmInputMode.ADDRESS.value, message.from_user.id)
+        property_dict[ConfirmInputMode.E_MAIL.value] = message.text
         bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
                          format(Localization.get_message('address')))
+        confirm_mode_enabled = ConfirmInputMode.ADDRESS
+    elif confirm_mode_enabled == ConfirmInputMode.ADDRESS:
+        property_dict[ConfirmInputMode.ADDRESS.value] = message.text
+        markup = types.InlineKeyboardMarkup()
+        yes_button = types.InlineKeyboardButton(text=Localization.get_message('yes'), callback_data='yes confirm')
+        no_button = types.InlineKeyboardButton(text=Localization.get_message('no'), callback_data='no confirm')
+        markup = markup.add(yes_button, no_button)
+        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('order_data') + '\n\n{0}\n{1}\n{2}\n{3}'
+                         .format(property_dict[ConfirmInputMode.NAME.value],
+                                 property_dict[ConfirmInputMode.TELEPHONE_NUMBER.value],
+                                 property_dict[ConfirmInputMode.E_MAIL.value],
+                                 property_dict[ConfirmInputMode.ADDRESS.value]), reply_markup=markup)
+
 
 bot.polling(none_stop=True)
