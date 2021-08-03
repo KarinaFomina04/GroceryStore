@@ -8,6 +8,7 @@ from Dao.order_dao import OrderDAO
 from telebot import types
 from Utils.localization import Localization
 from Dao.property_dao import PropertyDao
+from Service.e_mail_service import EmailService
 
 config = configparser.ConfigParser()
 config.read("settings.ini")
@@ -18,6 +19,7 @@ category_dao = CategoryDAO()
 good_dao = GoodDAO()
 order_dao = OrderDAO()
 property_dao = PropertyDao()
+email_service = EmailService()
 confirm_mode_enabled = False
 property_dict = {}
 
@@ -86,6 +88,8 @@ def answer(call):
     elif callback[1] == 'confirm':
         if callback[0] == 'yes':
             property_dao.add_properties(property_dict, call.from_user.id)
+            #TODO e_mail_service.send_message
+            email_service.send_gmail(property_dict)
             bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_in_confirm'))
         else:
             bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('repeat_confirm'))
