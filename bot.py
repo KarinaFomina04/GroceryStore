@@ -6,6 +6,8 @@ from Dao.good_dao import GoodDAO
 from Dao.category_dao import CategoryDAO
 from Dao.order_dao import OrderDAO
 from telebot import types
+
+from Service.order_service import OrderService
 from Utils.localization import Localization
 from Dao.property_dao import PropertyDao
 from Service.e_mail_service import EmailService
@@ -22,6 +24,7 @@ property_dao = PropertyDao()
 email_service = EmailService()
 confirm_mode_enabled = False
 property_dict = {}
+order_service = OrderService()
 
 
 @bot.message_handler(commands=['start'])
@@ -33,18 +36,8 @@ def start(message):
 @bot.message_handler(commands=['cart'])
 def get_cart(message):
     Localization.init_locale(message.from_user.language_code)
-    orders = order_dao.find_orders(message.from_user.id)
-    text_message = Localization.get_message('your_orders')
-    if (orders is not None) and (len(orders) != 0):
-        total_price = 0
-        for order in orders:
-            text_message = text_message + order.get_html_order()
-            total_price = total_price + order.get_price() * order.get_count()
-        text_message = text_message + Localization.get_message('total_price').format(
-            str(total_price)) + Localization.get_message('properties_added')
-        bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
-    else:
-        bot.send_message(chat_id=message.chat.id, text=Localization.get_message('empty_cart'))
+    text_message = order_service.get_orders(message.from_user.id, False)
+    bot.send_message(chat_id=message.chat.id, text=text_message, parse_mode='html')
 
 
 @bot.message_handler(commands=['category'])
@@ -89,11 +82,12 @@ def answer(call):
         if callback[0] == 'yes':
             property_dao.add_properties(property_dict, call.from_user.id)
             #TODO e_mail_service.send_message
-            email_service.send_gmail(property_dict)
+            email_service.send_gmail(property_dict, call.from_user.id)
             bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_in_confirm'))
         else:
             bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('repeat_confirm'))
         property_dict.clear()
+        order_dao.clear_cart(call.from_user.id)
     else:
         order_dao.add_to_cart(call.from_user.id, callback[0])
         bot.send_message(chat_id=call.message.chat.id, text=Localization.get_message('order_added'))
@@ -102,7 +96,6 @@ def answer(call):
 @bot.message_handler(commands=['confirm'])
 def confirm(message):
     Localization.init_locale(message.from_user.language_code)
-    order_dao.clear_cart(message.from_user.id)
     global confirm_mode_enabled
     confirm_mode_enabled = ConfirmInputMode.NAME
     bot.send_message(chat_id=message.chat.id, text=Localization.get_message('properties_confirm').
